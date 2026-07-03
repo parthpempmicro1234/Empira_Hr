@@ -10,18 +10,58 @@ if [[ -z "${RENDER_API_KEY:-}" ]]; then
   exit 1
 fi
 
-payload="$(jq -n --arg imageUrl "$image_url" '{imageUrl: $imageUrl}')"
+render_deploy() {
+  local payload="$1"
+  local response http_code body
 
-echo "Triggering Render deploy for ${service_name}: ${image_url}"
-response="$(
-  curl -fsS \
-    --request POST \
-    --url "https://api.render.com/v1/services/${service_id}/deploys" \
-    --header "Accept: application/json" \
-    --header "Authorization: Bearer ${RENDER_API_KEY}" \
-    --header "Content-Type: application/json" \
-    --data "$payload"
-)"
+  response="$(
+    curl -sS \
+      --request POST \
+      --url "https://api.render.com/v1/services/${service_id}/deploys" \
+      --header "Accept: application/json" \
+      --header "Authorization: Bearer ${RENDER_API_KEY}" \
+      --header "Content-Type: application/json" \
+      --data "$payload" \
+      --write-out "\n%{http_code}"
+  )"
+
+  http_code="$(tail -n 1 <<<"$response")"
+  body="$(sed '$d' <<<"$response")"
+
+  RENDER_HTTP_CODE="$http_code"
+  RENDER_RESPONSE_BODY="$body"
+}
+
+image_payload="$(jq -n --arg imageUrl "$image_url" '{imageUrl: $imageUrl}')"
+
+echo "Triggering Render image deploy for ${service_name}: ${image_url}"
+RENDER_HTTP_CODE=""
+RENDER_RESPONSE_BODY=""
+render_deploy "$image_payload"
+
+if [[ ! "$RENDER_HTTP_CODE" =~ ^2 ]]; then
+  printf '%s\n' "$RENDER_RESPONSE_BODY" >&2
+
+  if [[ "$RENDER_HTTP_CODE" == "400" || "$RENDER_HTTP_CODE" == "404" ]]; then
+    echo "::warning::Image deploy was not accepted for ${service_name}; falling back to source-connected Render deploy."
+    source_payload="$(
+      jq -n --arg commitId "${GITHUB_SHA:-}" \
+        'if $commitId == "" then {} else {commitId: $commitId} end'
+    )"
+    render_deploy "$source_payload"
+  else
+    echo "::error::Render deploy request failed for ${service_name} with HTTP ${RENDER_HTTP_CODE}"
+    exit 1
+  fi
+fi
+
+if [[ ! "$RENDER_HTTP_CODE" =~ ^2 ]]; then
+  printf '%s\n' "$RENDER_RESPONSE_BODY" >&2
+  echo "::error::Render deploy request failed for ${service_name} with HTTP ${RENDER_HTTP_CODE}"
+  exit 1
+fi
+
+response="$RENDER_RESPONSE_BODY"
 
 deploy_id="$(jq -r '.id // .deploy.id // .deployId // empty' <<<"$response")"
 if [[ -z "$deploy_id" ]]; then
