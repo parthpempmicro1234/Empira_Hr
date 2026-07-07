@@ -10,6 +10,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: production-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/empira-hr-backend
@@ -54,7 +58,18 @@ jobs:
         run: python manage.py check
 
       - name: Run backend tests
-        run: python manage.py test accounts organization leave documents team --noinput
+        run: |
+          python manage.py test \
+            accounts \
+            organization \
+            leave \
+            documents \
+            team \
+            notifications.tests.NotificationDispatcherTests \
+            notifications.tests.NotificationAPITests \
+            notifications.tests.LeaveNotificationServiceTests \
+            notifications.tests.FeedNotificationServiceTests \
+            --noinput
 
   frontend:
     name: Frontend install, lint, and test
@@ -79,7 +94,8 @@ jobs:
         run: npm ci
 
       - name: Lint frontend
-        run: npm run lint || echo "::warning::Existing frontend lint issues found; deployment is gated by tests and build."
+        continue-on-error: true
+        run: npm run lint
 
       - name: Run frontend tests
         run: npm test --if-present
@@ -110,7 +126,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Set up Docker Buildx

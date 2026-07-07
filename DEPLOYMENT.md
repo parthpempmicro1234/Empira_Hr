@@ -17,6 +17,17 @@ Build and run the full stack:
 docker compose up --build
 ```
 
+If those host ports are occupied, choose non-conflicting mappings without stopping the existing processes:
+
+```sh
+FRONTEND_HOST_PORT=5175 \
+BACKEND_HOST_PORT=8002 \
+REDIS_HOST_PORT=6381 \
+FRONTEND_PUBLIC_URL=http://localhost:5175 \
+BACKEND_PUBLIC_URL=http://localhost:8002/ \
+docker compose -p empira-verify up --build
+```
+
 Default host ports avoid the usual local dev ports:
 
 - Frontend: `http://localhost:5174`
@@ -37,7 +48,7 @@ The workflow runs on every push to `main` and can also be started manually with 
 
 Stages:
 
-1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then `python manage.py test accounts organization leave documents team --noinput`.
+1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then runs every currently runnable Django test class explicitly. Explicit labels avoid the existing `attendance/tests.py` and `attendance/tests/` discovery collision.
 2. Frontend install, lint, and test: runs `npm ci`, runs `npm run lint` as an advisory report, runs `npm test --if-present`, then `npx vite build`. Existing frontend lint/type strictness issues are not used to block deployment because the app source is treated as good for this pipeline task.
 3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
@@ -54,7 +65,7 @@ Deploy will not run if dependency install, deployment-gating tests, Docker build
 Notes on current test coverage:
 
 - Backend deployment-gating tests exclude `attendance.tests.test_attendance_policies`, whose fixtures call an old `create_user` signature.
-- Backend deployment-gating tests also exclude `notifications.tests.BroadcastTests.test_broadcast_notification_calls_group_send`, whose mock channel layer is synchronous while the current broadcast path awaits it.
+- Backend deployment-gating tests include all working notification suites and exclude only `notifications.tests.BroadcastTests.test_broadcast_notification_calls_group_send`, whose mock channel layer is synchronous while the current broadcast path awaits it.
 - The frontend package has no test script, so `npm test --if-present` is a no-op until one is added.
 - The frontend package's `npm run build` script also runs `tsc -b`, which currently fails on existing TypeScript strictness issues; Docker and CI use `npx vite build` to verify the production bundle without changing app source.
 
