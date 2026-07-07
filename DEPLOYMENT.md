@@ -55,7 +55,7 @@ Notes on current test coverage:
 
 Required:
 
-- `GHCR_TOKEN`: GitHub token for `parthpempmicro1234` with package write/read permissions.
+- `GHCR_TOKEN`: GitHub token for `parthpempmicro1234` with package read access. Store this as the credential used by Render to pull private GHCR images. The Actions job publishes images with its short-lived, repository-scoped `GITHUB_TOKEN` and the workflow's `packages: write` permission.
 - `RENDER_API_KEY`: Render API key from Account Settings.
 - `RENDER_BACKEND_SERVICE_ID`: Render service ID for the Django backend service.
 - `RENDER_FRONTEND_SERVICE_ID`: Render service ID for the React frontend service.
