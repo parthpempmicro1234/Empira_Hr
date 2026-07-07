@@ -42,6 +42,13 @@ Stages:
 3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
 
+The image services configured for this repository are:
+
+| Service | GHCR image | Render service ID | Live URL |
+| --- | --- | --- | --- |
+| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d96a7j9kh4rs73dgkk1g` | `https://empira-hr-backend-ulll.onrender.com` |
+| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d96a8t58nd3s73b4akjg` | `https://empira-hr-frontend.onrender.com` |
+
 Deploy will not run if dependency install, deployment-gating tests, Docker build, image push, or Render deploy fails. Frontend lint currently reports advisory findings without blocking deploy.
 
 Notes on current test coverage:
@@ -55,14 +62,14 @@ Notes on current test coverage:
 
 Required:
 
-- `GHCR_TOKEN`: GitHub token for `parthpempmicro1234` with package read access. Store this as the credential used by Render to pull private GHCR images. The Actions job publishes images with its short-lived, repository-scoped `GITHUB_TOKEN` and the workflow's `packages: write` permission.
+- `GHCR_TOKEN`: retained as the explicitly requested package credential and for any future use that needs to pull the images outside GitHub Actions. The currently configured GHCR packages are public, so the Render image services do not need a registry credential. The Actions job publishes images with its short-lived, repository-scoped `GITHUB_TOKEN` and the workflow's `packages: write` permission.
 - `RENDER_API_KEY`: Render API key from Account Settings.
-- `RENDER_BACKEND_SERVICE_ID`: Render service ID for the Django backend service.
-- `RENDER_FRONTEND_SERVICE_ID`: Render service ID for the React frontend service.
+- `RENDER_BACKEND_SERVICE_ID`: `srv-d96a7j9kh4rs73dgkk1g`, the Django backend service.
+- `RENDER_FRONTEND_SERVICE_ID`: `srv-d96a8t58nd3s73b4akjg`, the React frontend service.
 
 Recommended for a working deployed frontend/backend connection:
 
-- `VITE_API_URL`: public backend Render URL ending with `/`, for example `https://empira-hr-backend.onrender.com/`.
+- `VITE_API_URL`: public backend Render URL ending with `/`; this deployment uses `https://empira-hr-backend-ulll.onrender.com/`.
 - `VITE_WS_NOTIFICATIONS_URL`: websocket notifications URL, if different from the backend URL-derived default.
 
 Render service environment variables should include:
@@ -82,6 +89,8 @@ Create two Render Web Services using "Deploy an existing image from a registry":
 
 - Backend image: `ghcr.io/parthpempmicro1234/empira-hr-backend:main`
 - Frontend image: `ghcr.io/parthpempmicro1234/empira-hr-frontend:main`
+
+Both services use Render's free instance type in the Oregon region. The backend health-check path is `/admin/login/`; the frontend health-check path is `/healthz`. The backend also has `FRONTEND_URL=https://empira-hr-frontend.onrender.com` so Django's CORS settings permit the production frontend.
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 
