@@ -85,7 +85,7 @@ Create two Render Web Services using "Deploy an existing image from a registry":
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 
-The workflow deploy step uses the Render API endpoint `POST /v1/services/{serviceId}/deploys`. It first passes the updated GHCR image tag for image-backed Render services. If the Render service is configured as a source-connected Docker service, the helper falls back to a commit deploy for the current GitHub SHA.
+The workflow deploy step uses the Render API endpoint `POST /v1/services/{serviceId}/deploys` and passes the updated GHCR image tag. A Render service must therefore be configured as an image-backed service; the workflow intentionally fails instead of silently switching to a source-connected deployment.
 
 ## Triggering A Deploy
 

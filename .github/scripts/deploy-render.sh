@@ -41,23 +41,7 @@ render_deploy "$image_payload"
 
 if [[ ! "$RENDER_HTTP_CODE" =~ ^2 ]]; then
   printf '%s\n' "$RENDER_RESPONSE_BODY" >&2
-
-  if [[ "$RENDER_HTTP_CODE" == "400" || "$RENDER_HTTP_CODE" == "404" ]]; then
-    echo "::warning::Image deploy was not accepted for ${service_name}; falling back to source-connected Render deploy."
-    source_payload="$(
-      jq -n --arg commitId "${GITHUB_SHA:-}" \
-        'if $commitId == "" then {} else {commitId: $commitId} end'
-    )"
-    render_deploy "$source_payload"
-  else
-    echo "::error::Render deploy request failed for ${service_name} with HTTP ${RENDER_HTTP_CODE}"
-    exit 1
-  fi
-fi
-
-if [[ ! "$RENDER_HTTP_CODE" =~ ^2 ]]; then
-  printf '%s\n' "$RENDER_RESPONSE_BODY" >&2
-  echo "::error::Render deploy request failed for ${service_name} with HTTP ${RENDER_HTTP_CODE}"
+  echo "::error::Render image deploy request failed for ${service_name} with HTTP ${RENDER_HTTP_CODE}"
   exit 1
 fi
 
