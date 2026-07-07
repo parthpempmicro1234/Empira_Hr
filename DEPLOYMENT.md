@@ -62,7 +62,7 @@ Notes on current test coverage:
 
 Required:
 
-- `GHCR_TOKEN`: retained as the explicitly requested package credential and for any future use that needs to pull the images outside GitHub Actions. The currently configured GHCR packages are public, so the Render image services do not need a registry credential. The Actions job publishes images with its short-lived, repository-scoped `GITHUB_TOKEN` and the workflow's `packages: write` permission.
+- `GHCR_TOKEN`: a GitHub personal access token with `write:packages` (and the implied `read:packages`) permission. The Docker job validates this secret and uses it to authenticate its GHCR image pushes. Rotate it before its configured expiration and update the repository secret without committing the token.
 - `RENDER_API_KEY`: Render API key from Account Settings.
 - `RENDER_BACKEND_SERVICE_ID`: `srv-d96a7j9kh4rs73dgkk1g`, the Django backend service.
 - `RENDER_FRONTEND_SERVICE_ID`: `srv-d96a8t58nd3s73b4akjg`, the React frontend service.
