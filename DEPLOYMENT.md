@@ -39,7 +39,7 @@ Stages:
 
 1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then `python manage.py test accounts organization leave documents team --noinput`.
 2. Frontend install, lint, and test: runs `npm ci`, runs `npm run lint` as an advisory report, runs `npm test --if-present`, then `npx vite build`. Existing frontend lint/type strictness issues are not used to block deployment because the app source is treated as good for this pipeline task.
-3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira_hr-backend` and `ghcr.io/parthpempmicro1234/empira_hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
+3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
 
 Deploy will not run if dependency install, deployment-gating tests, Docker build, image push, or Render deploy fails. Frontend lint currently reports advisory findings without blocking deploy.
@@ -80,8 +80,8 @@ Render service environment variables should include:
 
 Create two Render Web Services using "Deploy an existing image from a registry":
 
-- Backend image: `ghcr.io/parthpempmicro1234/empira_hr-backend:main`
-- Frontend image: `ghcr.io/parthpempmicro1234/empira_hr-frontend:main`
+- Backend image: `ghcr.io/parthpempmicro1234/empira-hr-backend:main`
+- Frontend image: `ghcr.io/parthpempmicro1234/empira-hr-frontend:main`
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 

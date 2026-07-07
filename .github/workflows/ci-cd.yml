@@ -12,8 +12,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/empira_hr-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/empira_hr-frontend
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/empira-hr-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/empira-hr-frontend
 
 jobs:
   backend:
