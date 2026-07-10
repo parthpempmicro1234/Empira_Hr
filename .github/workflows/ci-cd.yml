@@ -167,6 +167,8 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_BACKEND_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
       RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
+      RENDER_BACKEND_URL: https://empira-hr-backend.onrender.com/admin/login/
+      RENDER_FRONTEND_URL: https://empira-hr-frontend.onrender.com/
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -190,3 +192,41 @@ jobs:
 
       - name: Trigger frontend deploy
         run: .github/scripts/deploy-render.sh frontend "$RENDER_FRONTEND_SERVICE_ID" "${FRONTEND_IMAGE}:main"
+
+      - name: Verify live services
+        shell: bash
+        run: |
+          verify_endpoint() {
+            local service_name="$1"
+            local url="$2"
+
+            for round in {1..12}; do
+              local successes=0
+
+              for sample in {1..8}; do
+                if curl --fail --silent --show-error --max-time 30 "$url" >/dev/null; then
+                  successes=$((successes + 1))
+                else
+                  echo "${service_name} verification failed in round ${round}, sample ${sample}"
+                  break
+                fi
+
+                if [ "$sample" -lt 8 ]; then
+                  sleep 2
+                fi
+              done
+
+              if [ "$successes" -eq 8 ]; then
+                echo "${service_name} passed 8 consecutive live checks"
+                return 0
+              fi
+
+              sleep 10
+            done
+
+            echo "::error::${service_name} did not become consistently reachable at ${url}"
+            return 1
+          }
+
+          verify_endpoint backend "$RENDER_BACKEND_URL"
+          verify_endpoint frontend "$RENDER_FRONTEND_URL"

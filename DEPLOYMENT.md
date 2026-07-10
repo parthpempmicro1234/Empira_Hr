@@ -52,6 +52,7 @@ Stages:
 2. Frontend install, lint, and test: runs `npm ci`, runs `npm run lint` as an advisory report, runs `npm test --if-present`, then `npx vite build`. Existing frontend lint/type strictness issues are not used to block deployment because the app source is treated as good for this pipeline task.
 3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
+5. Live verification: requires eight consecutive successful public responses from both the backend admin-login endpoint and the frontend root before the workflow can finish green.
 
 The image services configured for this repository are:
 
@@ -60,7 +61,7 @@ The image services configured for this repository are:
 | Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d98939mrnols73etp5u0` | `https://empira-hr-backend.onrender.com` |
 | Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d98940t7vvec7396rjr0` | `https://empira-hr-frontend.onrender.com` |
 
-Deploy will not run if dependency install, deployment-gating tests, Docker build, image push, or Render deploy fails. Frontend lint currently reports advisory findings without blocking deploy.
+Deploy will not run if dependency install, deployment-gating tests, Docker build, or image push fails. The workflow also fails if either Render deploy fails or either public service does not become consistently reachable after deployment. Frontend lint currently reports advisory findings without blocking deploy.
 
 Notes on current test coverage:
 
