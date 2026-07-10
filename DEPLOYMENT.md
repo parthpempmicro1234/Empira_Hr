@@ -57,8 +57,8 @@ The image services configured for this repository are:
 
 | Service | GHCR image | Render service ID | Live URL |
 | --- | --- | --- | --- |
-| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d96a7j9kh4rs73dgkk1g` | `https://empira-hr-backend-ulll.onrender.com` |
-| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d96a8t58nd3s73b4akjg` | `https://empira-hr-frontend.onrender.com` |
+| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d9886r6rnols73esc5p0` | `https://empira-hr-backend.onrender.com` |
+| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d9888mi8qa3s73f2egsg` | `https://empira-hr-frontend.onrender.com` |
 
 Deploy will not run if dependency install, deployment-gating tests, Docker build, image push, or Render deploy fails. Frontend lint currently reports advisory findings without blocking deploy.
 
@@ -75,12 +75,12 @@ Required:
 
 - `GHCR_TOKEN`: a GitHub personal access token with `write:packages` (and the implied `read:packages`) permission. The Docker job validates this secret and uses it to authenticate its GHCR image pushes. Rotate it before its configured expiration and update the repository secret without committing the token.
 - `RENDER_API_KEY`: Render API key from Account Settings.
-- `RENDER_BACKEND_SERVICE_ID`: `srv-d96a7j9kh4rs73dgkk1g`, the Django backend service.
-- `RENDER_FRONTEND_SERVICE_ID`: `srv-d96a8t58nd3s73b4akjg`, the React frontend service.
+- `RENDER_BACKEND_SERVICE_ID`: the Django backend service ID (`srv-d9886r6rnols73esc5p0` for the current service).
+- `RENDER_FRONTEND_SERVICE_ID`: the React frontend service ID (`srv-d9888mi8qa3s73f2egsg` for the current service).
 
 Recommended for a working deployed frontend/backend connection:
 
-- `VITE_API_URL`: public backend Render URL ending with `/`; this deployment uses `https://empira-hr-backend-ulll.onrender.com/`.
+- `VITE_API_URL`: public backend Render URL ending with `/`; this deployment uses `https://empira-hr-backend.onrender.com/`.
 - `VITE_WS_NOTIFICATIONS_URL`: websocket notifications URL, if different from the backend URL-derived default.
 
 Render service environment variables should include:
