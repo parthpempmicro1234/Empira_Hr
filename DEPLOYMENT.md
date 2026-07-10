@@ -58,8 +58,8 @@ The image services configured for this repository are:
 
 | Service | GHCR image | Render service ID | Live URL |
 | --- | --- | --- | --- |
-| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d98939mrnols73etp5u0` | `https://empira-hr-backend.onrender.com` |
-| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d98940t7vvec7396rjr0` | `https://empira-hr-frontend.onrender.com` |
+| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d989op58nd3s73c080hg` | `https://empira-hr-backend.onrender.com` |
+| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d989pcernols73eurct0` | `https://empira-hr-frontend.onrender.com` |
 
 Deploy will not run if dependency install, deployment-gating tests, Docker build, or image push fails. The workflow also fails if either Render deploy fails or either public service does not become consistently reachable after deployment. Frontend lint currently reports advisory findings without blocking deploy.
 
@@ -76,8 +76,8 @@ Required:
 
 - `GHCR_TOKEN`: a GitHub personal access token with `write:packages` (and the implied `read:packages`) permission. The Docker job validates this secret and uses it to authenticate its GHCR image pushes. Rotate it before its configured expiration and update the repository secret without committing the token.
 - `RENDER_API_KEY`: Render API key from Account Settings.
-- `RENDER_BACKEND_SERVICE_ID`: the Django backend service ID (`srv-d98939mrnols73etp5u0` for the current service).
-- `RENDER_FRONTEND_SERVICE_ID`: the React frontend service ID (`srv-d98940t7vvec7396rjr0` for the current service).
+- `RENDER_BACKEND_SERVICE_ID`: the Django backend service ID (`srv-d989op58nd3s73c080hg` for the current service).
+- `RENDER_FRONTEND_SERVICE_ID`: the React frontend service ID (`srv-d989pcernols73eurct0` for the current service).
 
 Recommended for a working deployed frontend/backend connection:
 
