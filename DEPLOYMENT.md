@@ -55,16 +55,16 @@ Stages:
 
 1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then runs every currently runnable Django test class explicitly. Explicit labels avoid the existing `attendance/tests.py` and `attendance/tests/` discovery collision.
 2. Frontend install, lint, and test: runs `npm ci`, checks ESLint against the existing-source baseline in `.github/scripts/check-frontend-lint.mjs`, runs `npm test --if-present`, builds the Vite production bundle, and verifies the generated HTML and JavaScript assets. Existing findings are accepted without modifying application source; new lint findings and invalid ESLint configuration fail the pipeline.
-3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
-4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
+3. Docker build and push: validates the publishing and frontend configuration secrets, builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
+4. Deploy: triggers Render deploys of the immutable commit-SHA image tags through the Render API after all earlier stages pass.
 5. Live verification: requires eight consecutive successful public responses from both the backend admin-login endpoint and the frontend root before the workflow can finish green.
 
-The image services configured for this repository are:
+The intended image-backed services are:
 
-| Service | GHCR image | Render service ID secret | Live URL |
+| Service | GHCR image | Render service ID secret | Verification URL secret |
 | --- | --- | --- | --- |
-| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `RENDER_BACKEND_SERVICE_ID` | `https://empira-hr-backend.onrender.com` |
-| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `RENDER_FRONTEND_SERVICE_ID` | `https://empira-hr-frontend.onrender.com` |
+| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `RENDER_BACKEND_SERVICE_ID` | `RENDER_BACKEND_URL` |
+| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `RENDER_FRONTEND_SERVICE_ID` | `RENDER_FRONTEND_URL` |
 
 Deploy will not run if dependency installation, a new frontend lint violation, a deployment-gating test, Docker build, or image push fails. The workflow also fails if either Render deploy fails or either public service does not become consistently reachable after deployment.
 
@@ -83,13 +83,13 @@ Required:
 - `RENDER_API_KEY`: Render API key from Account Settings.
 - `RENDER_BACKEND_SERVICE_ID`: the service ID copied from the newly created Django backend service in Render.
 - `RENDER_FRONTEND_SERVICE_ID`: the service ID copied from the newly created React frontend service in Render.
+- `VITE_API_URL`: the actual public backend Render origin ending with `/`. This is a Vite build-time value, so the production frontend image must be rebuilt when it changes.
+- `RENDER_BACKEND_URL`: the actual public backend verification URL, including a working path such as `/admin/login/`.
+- `RENDER_FRONTEND_URL`: the actual public frontend verification URL, such as its `/healthz` endpoint.
 
-Recommended for a working deployed frontend/backend connection:
+Optional:
 
-- `VITE_API_URL`: public backend Render URL ending with `/`; this deployment uses `https://empira-hr-backend.onrender.com/`.
 - `VITE_WS_NOTIFICATIONS_URL`: websocket notifications URL, if different from the backend URL-derived default.
-- `RENDER_BACKEND_URL`: override the backend verification URL when the actual Render hostname differs from the intended hostname; include a working path such as `/admin/login/`.
-- `RENDER_FRONTEND_URL`: override the frontend verification URL when the actual Render hostname differs from the intended hostname.
 
 Render service environment variables should include:
 
@@ -109,11 +109,11 @@ Create two Render Web Services using "Deploy an existing image from a registry":
 - Backend image: `ghcr.io/parthpempmicro1234/empira-hr-backend:main`
 - Frontend image: `ghcr.io/parthpempmicro1234/empira-hr-frontend:main`
 
-The current services use Render's free instance type in Oregon (US West). The
-backend health-check path is `/admin/login/`; the frontend health-check path is
-`/healthz`. The backend has
-`FRONTEND_URL=https://empira-hr-frontend.onrender.com` and the matching CORS
-origin so requests from the production frontend are permitted.
+Set the backend health-check path to `/admin/login/` and the frontend
+health-check path to `/healthz`. Configure the backend's `FRONTEND_URL` and
+`CORS_ALLOWED_ORIGINS` with the actual frontend Render origin so requests from
+the production frontend are permitted. Choose an instance type and region in
+the Render account during service creation.
 
 Free instances can spin down after inactivity. Their filesystems are ephemeral,
 so configure a managed PostgreSQL `DATABASE_URL` before relying on persistent
@@ -122,13 +122,13 @@ or cross-instance websocket delivery are required.
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 
-The workflow deploy step uses the Render API endpoint `POST /v1/services/{serviceId}/deploys` and passes the updated GHCR image tag. A Render service must therefore be configured as an image-backed service; the workflow intentionally fails instead of silently switching to a source-connected deployment.
+The workflow deploy step uses the Render API endpoint `POST /v1/services/{serviceId}/deploys` and passes the GHCR commit-SHA image tag. A Render service must therefore be configured as an image-backed service; the workflow intentionally fails instead of silently switching to a source-connected deployment. The packages are public in GHCR; if their visibility is changed to private, configure a Render registry credential with a token that can read the packages.
 
-Check the deployed services directly:
+After the services are created, check their actual URLs directly:
 
 ```sh
-curl --fail https://empira-hr-backend.onrender.com/admin/login/
-curl --fail https://empira-hr-frontend.onrender.com/healthz
+curl --fail "$RENDER_BACKEND_URL"
+curl --fail "$RENDER_FRONTEND_URL"
 ```
 
 ## Triggering A Deploy

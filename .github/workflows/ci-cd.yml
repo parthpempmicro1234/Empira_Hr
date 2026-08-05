@@ -130,12 +130,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Validate GHCR secret
+      - name: Validate image publishing and frontend configuration secrets
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          if [ -z "$GHCR_TOKEN" ]; then
-            echo "::error::Missing required secret: GHCR_TOKEN"
+          missing=()
+          for name in GHCR_TOKEN VITE_API_URL; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '::error::Missing required secret(s): %s\n' "${missing[*]}"
             exit 1
           fi
 
@@ -167,7 +175,7 @@ jobs:
           context: Empira_HR_UI
           push: true
           build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL || 'http://127.0.0.1:8000/' }}
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
             VITE_WS_NOTIFICATIONS_URL=${{ secrets.VITE_WS_NOTIFICATIONS_URL }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
@@ -184,8 +192,8 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_BACKEND_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
       RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
-      RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://empira-hr-backend.onrender.com/admin/login/' }}
-      RENDER_FRONTEND_URL: ${{ secrets.RENDER_FRONTEND_URL || 'https://empira-hr-frontend.onrender.com/' }}
+      RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
+      RENDER_FRONTEND_URL: ${{ secrets.RENDER_FRONTEND_URL }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -193,7 +201,7 @@ jobs:
       - name: Validate Render secrets
         run: |
           missing=()
-          for name in RENDER_API_KEY RENDER_BACKEND_SERVICE_ID RENDER_FRONTEND_SERVICE_ID; do
+          for name in RENDER_API_KEY RENDER_BACKEND_SERVICE_ID RENDER_FRONTEND_SERVICE_ID RENDER_BACKEND_URL RENDER_FRONTEND_URL; do
             if [ -z "${!name}" ]; then
               missing+=("$name")
             fi
@@ -205,10 +213,10 @@ jobs:
           fi
 
       - name: Trigger backend deploy
-        run: .github/scripts/deploy-render.sh backend "$RENDER_BACKEND_SERVICE_ID" "${BACKEND_IMAGE}:main"
+        run: .github/scripts/deploy-render.sh backend "$RENDER_BACKEND_SERVICE_ID" "${BACKEND_IMAGE}:${GITHUB_SHA}"
 
       - name: Trigger frontend deploy
-        run: .github/scripts/deploy-render.sh frontend "$RENDER_FRONTEND_SERVICE_ID" "${FRONTEND_IMAGE}:main"
+        run: .github/scripts/deploy-render.sh frontend "$RENDER_FRONTEND_SERVICE_ID" "${FRONTEND_IMAGE}:${GITHUB_SHA}"
 
       - name: Verify live services
         shell: bash
