@@ -1,6 +1,11 @@
 services:
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     ports:
       - "${REDIS_HOST_PORT:-6380}:6379"
     volumes:
@@ -20,7 +25,8 @@ services:
       CHANNEL_REDIS_URL: "redis://redis:6379/2"
       SQLITE_PATH: "/data/db.sqlite3"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "${BACKEND_HOST_PORT:-8001}:8000"
     volumes:
@@ -32,7 +38,8 @@ services:
       args:
         VITE_API_URL: "${BACKEND_PUBLIC_URL:-http://localhost:8001/}"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "${FRONTEND_HOST_PORT:-5174}:8080"
 

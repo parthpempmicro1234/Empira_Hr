@@ -17,4 +17,8 @@ Docker Compose uses non-conflicting host ports by default:
 - Backend: `http://localhost:8001`
 - Redis: `localhost:6380`
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the CI/CD workflow, required GitHub secrets, Docker images, Render deployment, and rollback notes.
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the Docker Compose setup, GitHub Actions
+pipeline, required repository secrets, GHCR images, Render deployment, live
+verification, and rollback instructions.

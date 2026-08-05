@@ -94,14 +94,31 @@ jobs:
         run: npm ci
 
       - name: Lint frontend
-        continue-on-error: true
-        run: npm run lint
+        run: |
+          report="$(mktemp)"
+
+          set +e
+          npx eslint . --format json --output-file "$report"
+          lint_status=$?
+          set -e
+
+          if [ "$lint_status" -gt 1 ]; then
+            echo "::error::ESLint could not finish successfully"
+            exit "$lint_status"
+          fi
+
+          node ../.github/scripts/check-frontend-lint.mjs "$report"
 
       - name: Run frontend tests
         run: npm test --if-present
 
       - name: Build frontend
         run: npx vite build
+
+      - name: Verify frontend production bundle
+        run: |
+          test -s dist/index.html
+          find dist/assets -type f -name '*.js' -print -quit | grep -q .
 
   docker:
     name: Build and push Docker images
@@ -167,8 +184,8 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_BACKEND_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
       RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
-      RENDER_BACKEND_URL: https://empira-hr-backend.onrender.com/admin/login/
-      RENDER_FRONTEND_URL: https://empira-hr-frontend.onrender.com/
+      RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://empira-hr-backend.onrender.com/admin/login/' }}
+      RENDER_FRONTEND_URL: ${{ secrets.RENDER_FRONTEND_URL || 'https://empira-hr-frontend.onrender.com/' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

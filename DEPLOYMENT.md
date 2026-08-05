@@ -17,6 +17,11 @@ Build and run the full stack:
 docker compose up --build
 ```
 
+Redis starts first and must pass `redis-cli ping`; the Django backend then
+starts, applies migrations, collects static files, and must pass its HTTP
+health check before the frontend starts. Both application images use
+multi-stage builds and maintain their own `.dockerignore` files.
+
 If those host ports are occupied, choose non-conflicting mappings without stopping the existing processes:
 
 ```sh
@@ -49,19 +54,19 @@ The workflow runs on every push to `main` and can also be started manually with 
 Stages:
 
 1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then runs every currently runnable Django test class explicitly. Explicit labels avoid the existing `attendance/tests.py` and `attendance/tests/` discovery collision.
-2. Frontend install, lint, and test: runs `npm ci`, runs `npm run lint` as an advisory report, runs `npm test --if-present`, then `npx vite build`. Existing frontend lint/type strictness issues are not used to block deployment because the app source is treated as good for this pipeline task.
+2. Frontend install, lint, and test: runs `npm ci`, checks ESLint against the existing-source baseline in `.github/scripts/check-frontend-lint.mjs`, runs `npm test --if-present`, builds the Vite production bundle, and verifies the generated HTML and JavaScript assets. Existing findings are accepted without modifying application source; new lint findings and invalid ESLint configuration fail the pipeline.
 3. Docker build and push: builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys through the Render API after all earlier stages pass.
 5. Live verification: requires eight consecutive successful public responses from both the backend admin-login endpoint and the frontend root before the workflow can finish green.
 
 The image services configured for this repository are:
 
-| Service | GHCR image | Render service ID | Live URL |
+| Service | GHCR image | Render service ID secret | Intended live URL |
 | --- | --- | --- | --- |
-| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `srv-d9ou86bncjis73eltngg` | `https://empira-hr-backend.onrender.com` |
-| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `srv-d9ou8u3ncjis73elv470` | `https://empira-hr-frontend.onrender.com` |
+| Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `RENDER_BACKEND_SERVICE_ID` | `https://empira-hr-backend.onrender.com` |
+| Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `RENDER_FRONTEND_SERVICE_ID` | `https://empira-hr-frontend.onrender.com` |
 
-Deploy will not run if dependency install, deployment-gating tests, Docker build, or image push fails. The workflow also fails if either Render deploy fails or either public service does not become consistently reachable after deployment. Frontend lint currently reports advisory findings without blocking deploy.
+Deploy will not run if dependency installation, a new frontend lint violation, a deployment-gating test, Docker build, or image push fails. The workflow also fails if either Render deploy fails or either public service does not become consistently reachable after deployment.
 
 Notes on current test coverage:
 
@@ -76,13 +81,15 @@ Required:
 
 - `GHCR_TOKEN`: a GitHub personal access token with `write:packages` (and the implied `read:packages`) permission. The Docker job validates this secret and uses it to authenticate its GHCR image pushes. Rotate it before its configured expiration and update the repository secret without committing the token.
 - `RENDER_API_KEY`: Render API key from Account Settings.
-- `RENDER_BACKEND_SERVICE_ID`: the Django backend service ID (`srv-d9ou86bncjis73eltngg` for the current service).
-- `RENDER_FRONTEND_SERVICE_ID`: the React frontend service ID (`srv-d9ou8u3ncjis73elv470` for the current service).
+- `RENDER_BACKEND_SERVICE_ID`: the service ID copied from the newly created Django backend service in Render.
+- `RENDER_FRONTEND_SERVICE_ID`: the service ID copied from the newly created React frontend service in Render.
 
 Recommended for a working deployed frontend/backend connection:
 
 - `VITE_API_URL`: public backend Render URL ending with `/`; this deployment uses `https://empira-hr-backend.onrender.com/`.
 - `VITE_WS_NOTIFICATIONS_URL`: websocket notifications URL, if different from the backend URL-derived default.
+- `RENDER_BACKEND_URL`: override the backend verification URL when the actual Render hostname differs from the intended hostname; include a working path such as `/admin/login/`.
+- `RENDER_FRONTEND_URL`: override the frontend verification URL when the actual Render hostname differs from the intended hostname.
 
 Render service environment variables should include:
 
@@ -102,7 +109,7 @@ Create two Render Web Services using "Deploy an existing image from a registry":
 - Backend image: `ghcr.io/parthpempmicro1234/empira-hr-backend:main`
 - Frontend image: `ghcr.io/parthpempmicro1234/empira-hr-frontend:main`
 
-Both services use Render's free instance type in the Ohio (US East) region. The backend health-check path is `/admin/login/`; the frontend health-check path is `/healthz`. The backend also has `FRONTEND_URL=https://empira-hr-frontend.onrender.com` so Django's CORS settings permit the production frontend.
+Choose a region and instance type that are available in the Render account. The backend health-check path is `/admin/login/`; the frontend health-check path is `/healthz`. Configure `FRONTEND_URL` to the actual frontend Render URL so Django's CORS settings permit the production frontend.
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 
