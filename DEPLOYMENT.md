@@ -61,7 +61,7 @@ Stages:
 
 The image services configured for this repository are:
 
-| Service | GHCR image | Render service ID secret | Intended live URL |
+| Service | GHCR image | Render service ID secret | Live URL |
 | --- | --- | --- | --- |
 | Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `RENDER_BACKEND_SERVICE_ID` | `https://empira-hr-backend.onrender.com` |
 | Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `RENDER_FRONTEND_SERVICE_ID` | `https://empira-hr-frontend.onrender.com` |
@@ -109,11 +109,27 @@ Create two Render Web Services using "Deploy an existing image from a registry":
 - Backend image: `ghcr.io/parthpempmicro1234/empira-hr-backend:main`
 - Frontend image: `ghcr.io/parthpempmicro1234/empira-hr-frontend:main`
 
-Choose a region and instance type that are available in the Render account. The backend health-check path is `/admin/login/`; the frontend health-check path is `/healthz`. Configure `FRONTEND_URL` to the actual frontend Render URL so Django's CORS settings permit the production frontend.
+The current services use Render's free instance type in Oregon (US West). The
+backend health-check path is `/admin/login/`; the frontend health-check path is
+`/healthz`. The backend has
+`FRONTEND_URL=https://empira-hr-frontend.onrender.com` and the matching CORS
+origin so requests from the production frontend are permitted.
+
+Free instances can spin down after inactivity. Their filesystems are ephemeral,
+so configure a managed PostgreSQL `DATABASE_URL` before relying on persistent
+application data. Add managed Redis URLs if production Celery jobs, shared cache,
+or cross-instance websocket delivery are required.
 
 After creating the services, copy each service ID from the Render service URL or settings page and add it to the GitHub repository secrets listed above.
 
 The workflow deploy step uses the Render API endpoint `POST /v1/services/{serviceId}/deploys` and passes the updated GHCR image tag. A Render service must therefore be configured as an image-backed service; the workflow intentionally fails instead of silently switching to a source-connected deployment.
+
+Check the deployed services directly:
+
+```sh
+curl --fail https://empira-hr-backend.onrender.com/admin/login/
+curl --fail https://empira-hr-frontend.onrender.com/healthz
+```
 
 ## Triggering A Deploy
 
