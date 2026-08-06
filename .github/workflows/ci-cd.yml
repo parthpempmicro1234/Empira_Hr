@@ -130,10 +130,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Validate image publishing and frontend configuration secrets
+      - name: Validate image publishing and frontend configuration
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: |
           missing=()
           for name in GHCR_TOKEN VITE_API_URL; do
@@ -143,7 +143,7 @@ jobs:
           done
 
           if [ "${#missing[@]}" -gt 0 ]; then
-            printf '::error::Missing required secret(s): %s\n' "${missing[*]}"
+            printf '::error::Missing required deployment configuration: %s\n' "${missing[*]}"
             exit 1
           fi
 
@@ -175,7 +175,7 @@ jobs:
           context: Empira_HR_UI
           push: true
           build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_API_URL=${{ vars.VITE_API_URL }}
             VITE_WS_NOTIFICATIONS_URL=${{ secrets.VITE_WS_NOTIFICATIONS_URL }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
@@ -192,13 +192,13 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_BACKEND_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
       RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
-      RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
-      RENDER_FRONTEND_URL: ${{ secrets.RENDER_FRONTEND_URL }}
+      RENDER_BACKEND_URL: ${{ vars.RENDER_BACKEND_URL }}
+      RENDER_FRONTEND_URL: ${{ vars.RENDER_FRONTEND_URL }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Validate Render secrets
+      - name: Validate Render configuration
         run: |
           missing=()
           for name in RENDER_API_KEY RENDER_BACKEND_SERVICE_ID RENDER_FRONTEND_SERVICE_ID RENDER_BACKEND_URL RENDER_FRONTEND_URL; do
@@ -208,7 +208,7 @@ jobs:
           done
 
           if [ "${#missing[@]}" -gt 0 ]; then
-            printf '::error::Missing required secret(s): %s\n' "${missing[*]}"
+            printf '::error::Missing required deployment configuration: %s\n' "${missing[*]}"
             exit 1
           fi
 
