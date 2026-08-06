@@ -55,13 +55,13 @@ Stages:
 
 1. Backend install, lint, and test: installs Python dependencies, runs `python manage.py check`, then runs every currently runnable Django test class explicitly. Explicit labels avoid the existing `attendance/tests.py` and `attendance/tests/` discovery collision.
 2. Frontend install, lint, and test: runs `npm ci`, checks ESLint against the existing-source baseline in `.github/scripts/check-frontend-lint.mjs`, runs `npm test --if-present`, builds the Vite production bundle, and verifies the generated HTML and JavaScript assets. Existing findings are accepted without modifying application source; new lint findings and invalid ESLint configuration fail the pipeline.
-3. Docker build and push: validates the publishing and frontend configuration secrets, builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
+3. Docker build and push: validates the publishing secret and frontend repository variable, builds `ghcr.io/parthpempmicro1234/empira-hr-backend` and `ghcr.io/parthpempmicro1234/empira-hr-frontend`, then pushes `main`, `latest`, and commit-SHA tags to GHCR.
 4. Deploy: triggers Render deploys of the immutable commit-SHA image tags through the Render API after all earlier stages pass.
-5. Live verification: requires eight consecutive successful public responses from both the backend admin-login endpoint and the frontend root before the workflow can finish green.
+5. Live verification: requires eight consecutive successful public responses from both the backend admin-login endpoint and the frontend health endpoint before the workflow can finish green.
 
-The intended image-backed services are:
+The image-backed services are:
 
-| Service | GHCR image | Render service ID secret | Verification URL secret |
+| Service | GHCR image | Render service ID secret | Verification URL variable |
 | --- | --- | --- | --- |
 | Backend | `ghcr.io/parthpempmicro1234/empira-hr-backend:main` | `RENDER_BACKEND_SERVICE_ID` | `RENDER_BACKEND_URL` |
 | Frontend | `ghcr.io/parthpempmicro1234/empira-hr-frontend:main` | `RENDER_FRONTEND_SERVICE_ID` | `RENDER_FRONTEND_URL` |
@@ -83,11 +83,16 @@ Required:
 - `RENDER_API_KEY`: Render API key from Account Settings.
 - `RENDER_BACKEND_SERVICE_ID`: the service ID copied from the newly created Django backend service in Render.
 - `RENDER_FRONTEND_SERVICE_ID`: the service ID copied from the newly created React frontend service in Render.
-- `VITE_API_URL`: the actual public backend Render origin ending with `/`. This is a Vite build-time value, so the production frontend image must be rebuilt when it changes.
-- `RENDER_BACKEND_URL`: the actual public backend verification URL, including a working path such as `/admin/login/`.
-- `RENDER_FRONTEND_URL`: the actual public frontend verification URL, such as its `/healthz` endpoint.
 
-Optional:
+## Required GitHub Actions Repository Variables
+
+These values are public configuration, not secrets. Set them under **Settings → Secrets and variables → Actions → Variables**:
+
+- `VITE_API_URL`: `https://empira-hr-backend.onrender.com/`. This is a Vite build-time value, so the production frontend image must be rebuilt when it changes.
+- `RENDER_BACKEND_URL`: `https://empira-hr-backend.onrender.com/admin/login/`.
+- `RENDER_FRONTEND_URL`: `https://empira-hr-frontend.onrender.com/healthz`.
+
+Optional secret:
 
 - `VITE_WS_NOTIFICATIONS_URL`: websocket notifications URL, if different from the backend URL-derived default.
 
@@ -103,6 +108,11 @@ Render service environment variables should include:
 - Email settings such as `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL` if OTP/email flows are required.
 
 ## Render Setup
+
+Current free, image-backed services in the Oregon region:
+
+- Frontend: [https://empira-hr-frontend.onrender.com/](https://empira-hr-frontend.onrender.com/)
+- Backend health/login: [https://empira-hr-backend.onrender.com/admin/login/](https://empira-hr-backend.onrender.com/admin/login/)
 
 Create two Render Web Services using "Deploy an existing image from a registry":
 
